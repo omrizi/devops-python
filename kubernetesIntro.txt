@@ -1,0 +1,153 @@
+#K8s ARC
+    #orchestration system
+    #k-"eights"
+    #Kubectl - CLI to configure k8s and manage app
+    #Node - server in the k8s cluster
+    #Kubelet - k8s agent running on nodes
+    #Control plane - set of containers that manage the cluster
+        #include API, scheduler,dns ...
+        #sometimes called master
+
+    #We can have more then 1 master but only 1 works at the time (the others for backup)
+    #All the masters are called Control plane
+    #They work with the same protocol raft as swarm (distributed DB)
+    #All of them run on top of docker
+    #Each master will have the following containers
+        #etcd - distributed storage solution for configuration and db Control, store configuration and replicate it..
+        #API - talk to the cluster
+        #Schedular - how and where containers places on nodes on object called PODS
+        #Controller manager - looks at the state of the cluster and check if the configuration equals
+         to the production state.
+        #Core dns
+        #network, ...
+    #Each Node will have the following containers 
+        #Kubelet
+        #Kube-proxy - control the network
+        #networking,...
+
+#Basic Object of k8s
+    #POD - one or to containers running on a node
+        #basic unit of deployment.
+        #containers allways in PODS
+    #Controller - create / update PODS and other objects
+    #Service - network endpoint to conenct to a POD
+    #Namespaces - Filtered group of objects in cluster
+        #For example
+            #System containers
+            #App containers
+            #DB containers
+            ...
+    #Secrets, Config maps and more and more and more...
+
+#microk8s installation 
+
+#install spesific version
+sudo snap install microk8s --classic --channel=1.17/stable
+
+#enable coreDNS
+microk8s.enable dns
+
+#check microk8s status
+microk8s.status
+
+#K8s Commands
+    #Kubectl version - Will show client and Server version.
+        #do remember that kubectl talk through API with k8s server.
+    
+    #Two ways to run and configure k8s
+        #CLI
+        #YAML Files
+
+    #Create and  Run container
+        #kubectl run <container name> --image <image name>
+        kubectl run my-nginx --image nginx
+    #Create deployment
+        kubectl create deployment nginx --image nginx
+    #See pods status
+        kubectl get pods
+    #See all object 
+        #kubectl get all
+    #delete all objects
+        #kubectl delete <deploy name>
+        #kubectl delete my-ngnix (will delete the deploy, replicaset, pod, container)
+
+    #scale container
+        #kubectl scale deploy/<container name> --replicas n
+
+    #log about container
+        #kubectl logs deployment/<container name>
+        #kubectl logs deployment/<container name> --follow --tail
+    #describe spesific pod
+        #kubectl describe <spesific container name>
+
+
+    #EXPOSE SERVICES - stable endpoint that exist within a pod 
+        #Service is a stable address for pod(s)
+        #If we want to connect to pod we need Service
+        #CoreDNS allow us to resolve service by name
+        #Service Types
+            #Cluster IP (default) - 
+                #Only abaliable in the cluster
+                #Used for communication between pods inside the cluster
+                #Will use the port which the pod configured to work with
+                #example
+                    #kubectl expose deployment/httpenv --port 8888
+            #Node Port - 
+                #Desiged for communication from outside the cluster
+                #HighPort allocate to the port
+                #example   
+                    #kubectl expose deployment/httpenv-np --port 8888 --type NodePort
+            #LoadBalancer - 
+                #Controlls external LB to the cluster
+                #Only avaliable when Cloud Provider support it
+           
+            #Check all SERVICES
+                #kubectl get services
+            
+            #If we are using ClusterIP service - it won't be accessable from outside
+
+
+#GitOps
+    #use git and versioning to change infrastructure
+    #one command to rull them all
+    #create, run,add,delete,update
+        #kubectl apply -f <fileName.yml>
+    #We also can run apply on a directory of yml files and it will create them all
+    #The best way to manage infrustructure is to use yml files, to make versioning and store them, 
+     and to deploy it automaticlly when needed with apply command
+
+#YAML Configuration
+    #each yml contains 4 parts
+        #apiVersion
+        #kind
+        #metadata
+        #spec
+
+    #example
+        apiVersion: v1
+        Kind: pod
+        metadata
+            name: mynginx
+        spec:
+            containers:
+                - name: mynginx
+                image: nginx:1.17.3
+                ports:
+                    - containerPort: 80
+
+#KUBECTL EXPLAIN - can get all keys supported in yaml file
+    #kubectl explain services --recursive
+    #we can drill down with services.<somthing>
+    #for example
+        #kubectl services.kind
+        #kubectl services.spec
+
+
+
+#DRYRUN & DIF - allow us to see what we are going to change before we change it
+    #dryrun - send our yaml to server, figure what's going to change and print it to the user
+    
+
+#Labels
+    #are inside metadata sction of the yaml file
+    #
