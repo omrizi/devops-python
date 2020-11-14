@@ -1,0 +1,435 @@
+#docker information
+docker version
+
+#more detailed information
+docker info
+
+#run docker
+
+#docker volume consumption
+
+docker system df
+
+docker container run -p <external port>:<internal port> -d  --name <name your docker> <image name from repository>
+
+#-d to detach, run in background
+#-p for publish ports
+#--name 
+
+#get logs for spesific docker container
+
+docker container logs <docker name>
+
+#delete a running container
+
+docker container rm -f <docker id>
+#-f force to delete a running container 
+
+#inspect the inside processes inside the docker container
+docker top <docker id>
+
+#get details of docker configuration like network,ports, names etc..
+docker container inspect <docker id>
+
+#get info and statistics about all dockers running
+
+docker container stats
+
+#getting inside a container with terminal
+
+docker exec -it <container id> bash
+
+#######################
+NETWORK COMMANDS
+#######################
+
+#show all virtual networks inside a machine
+docker network ls
+
+#get details about network
+docker network inspect <network name / id>
+
+#create a new network
+docker network create --driver <third party driver>
+
+#connect docker to a network
+docker network connect <network id> <container id>
+
+#disconnect docker to a network
+docker network disconnect <network id> <container id>
+
+#######################
+NAMES AND DNS
+#######################
+
+#we can run 2 dockers (like elasticsearch for example) with difrent names and ip and to 
+#assign to them alias. then we can use the alias to do a DNS ROUTING and Load balancing
+
+################
+First - create new network
+################
+
+docker container network create <name...>
+
+################
+Second - create 2 dockers with same image and assign them network and same alias
+################
+
+docker container run -d --net prod_net --net-alias search elasticsearch:2
+docker container run -d --net prod_net --net-alias search elasticsearch:2
+
+################
+third - check the dns resolving with another docker (alpine )
+################
+
+docker container run --rm -it --net prod_net alpine nslookup search.
+
+The results should be 2 ip addresses of 2 elasticsearch dockers
+
+################
+fourth - test with curl - try to send message to elastic search and get results
+with the result we can see the diferent dockers answering in a round roobin manner
+we should address elasticsearch with port 9200
+################
+
+docker container run --rm -it --net prod_net centos:7 curl search:9200
+
+
+------------------------------------------------------------------------------------
+IMAGES
+------------------------------------------------------------------------------------
+
+An image is - App binaries and dependencies
+metadata about the image and how to run it
+There is no complete OS inside the docker
+
+hub.docker.com --> docker hub web
+official image is a good way to start.
+all the others are add-ons. 
+images are tag! we choose the image + the tag whice specify the image
+if we do not specift the tag we will get the "latest"
+
+Image build like an onion, with layers
+
+#we can check the layers of an image
+
+docker history <name>:<tag>
+
+#The metadata about the image
+docker image inspect <image name>:<tag>
+
+#push image to docker hub
+
+docker image push <repoName>:<tag>
+
+#in order to push / pull we should login
+
+ #login
+ docker loging 
+#fill username and password
+
+#for security purpuses logout when finishing
+
+docker logout
+
+
+################
+Dockerfile
+################
+
+From - minimal distributaion of linux. recomended - alpine, centos, debian
+
+WORKDIR - change the directory inside the docker.
+for example in nginx we cant to change the files in the web directory
+WORKDIR /usr/share/nginx/html
+
+ENV - set global variables
+
+RUN - run shell commands. usually install packages and etc, curl, update ...
+
+EXPOSE - open the ports to our virtual network
+
+CMD - the command which will run first when the docker is up.
+
+------------------------------------------------------------------------------------
+PERSISTENT DATA
+------------------------------------------------------------------------------------
+
+ther are two way to deal with persistent date in a docker
+1) Volume - Create a volume outside the docker to store unique DATA
+2) Mount bind - share / mount to docker
+
+###################################################
+Create new volume - command inside the dockerfile
+###################################################
+
+VOLUME <path>
+for example
+VOLUME /var/lib/mysql
+
+by doing that we create a new place in memory and attach it to the docker.
+the source of this volume is in the host and when / if the docker is dead, the data will still
+be inside the host memory.
+if we will run docker inspect we will see inside the configuration "mount" with source and destination
+source - host 
+destination - docker 
+
+we can see the volumes inside host by
+docker volume ls
+docker volume inspect <volume name>
+
+In order to give a name to volume we should use -v in docker run :
+
+docker container run -d -p 80:80 --name mysql -v sql-db:/var/lib/mysql mysql
+
+this command will create new volume with the name "sql-db"
+by creating a name we cant then assign new dockers with the same volume
+in this method we can keep persistency of data while the docker deis and comes alive again..
+
+
+###################################################
+Docker Compose
+###################################################
+
+#setting up all configuration and starts the containers
+docker-compose up
+
+#stop the containers and remove configuration like networks, volumes ...
+docker-compuse down
+
+
+
+###################################################
+Docker Swarm
+###################################################
+
+how to deploy and maintain all the containers ? 
+
+deploy, start, restart, delete, update, .... how do we do that? 
+scale up, scale down, self healing ...
+zero downtime
+monitoring, security
+
+docker = container runtime
+swarm = occastrate docker lifetime
+
+################
+Architecture
+################
+
+contains Managers and Workers.
+managers save the configuration in db. manager is like a warker with premisions to manage the swarm.
+workers are the runtime machinces for containers.
+managers send commands to workers.
+manager can configure replica set easily
+
+################
+Commands
+################
+
+#check if swarm is up and working
+
+docker info
+
+#if Swarm inactive then we need to initialize swarm
+
+docker swarm init
+
+docker node ls
+
+#docker service replace docker run Commands
+
+#types of privileges
+
+docker swarm --help : in the level of managing the swarm
+docker node --help  : in the level of manage nodes in the swarm
+docker service --help : in the level of the runtime containers
+docker update --help  : in the level of docker usage (cpu, memory ...)
+
+#example of creating a new service
+#we create alpine docker that runs ping to 8.8.8.8
+docker service create alpine ping 8.8.8.8
+
+#now lets scale up the container
+docker service update <docker_id> --replicas 3
+
+#to delete all containers we should delete the service
+
+docker service rm -f <docker_id>
+
+#when we init docker swarm it pops a command that tell us how to join new nodes to the swarm
+#when we want to make a cluster of nodes we can copy this command and paste it on other volume
+#In machine 1 - docker swarm init
+#in machine 2 - docker swarm join --token SWMTKN-1-38ayxhblkqp0gnyj8z39sbcbtjlp7xlwiu3ka3b2o61hl1ovib-220x0qgrs8dd0bk0zo41h9gkq 172.31.86.170:2377
+now the stats of the swarm is 
+
+#we can get the keys of manager and worker with the following commands
+
+docker swarm join-token manager
+docker swarm join-token worker
+
+we have 2 machinces or nodes
+node 1 - leader / manager
+node 2 - worker
+
+#workers cannot use swarm commands. they don't have privileges or access.
+#we can update worker to become a manager. we do that in the manager : 
+
+docker node update --role manager <docker_name>
+#now the node2 become a manager and in state reachable
+
+##################
+network
+##################
+
+#We can create an overley network for all swarm components
+overley acts as like the serivces and the managers are in the same subnet.
+
+docker network create  --driver overley <net_name>
+
+##################
+ROUTING MESH
+##################
+
+If we lunched a service with more then 1 replica (2 or more)
+Then SWARM will use ROUTING MESH idea to manage the trafic between the containers.
+It uses VIP (Virtual IP).
+The service name will get the the VIP (for example PSQL - 1.2.3.4)
+
+TERMINOLOGY
+###########
+when we create service with 3 replicas - 
+we have 3 TASKS
+one of them will get the VIP and will be the primary.
+
+We can configure round robin load balancing
+
+#Create a swarm service
+
+docker service create --name <service_name> -p <export:intport> --network <net_name> --mount <mount volume> -e env <image>
+
+#########################
+Docker stack deploy
+#########################
+Another overlay on top SWARM  - deploy swarm services with compose file (YML)
+#cant do build inside the swarm compose
+#we should build the image before
+#inside the new compose file we will add deploy section that was not on docker-compose 
+
+docker stack --help
+
+#to create docker stack
+docker stack create -c <composefile.yml> <stackname>
+
+#to see info 
+docker stack ls
+docker stack ps <name>
+
+#####################
+SECRETS
+####################
+Store secrets in storage like usernames, passwords, keys (SSH,APIKEY...)
+they saved in containers in RAM only. RAM-FS
+We have 2 ways to work with secrets with swarm
+1)give it a file contains the information
+docker secret create <secret_name> <fileName>
+
+2)enter the details in the cli
+echo <password> | docker secret create <secren_name> -
+
+docker secrets ls
+
+#in order to map secret to a docker we should add --secret <secret name> into the run command or compose file
+#Inside the command, inside the -e pass and user , we can assign the appropriate file. for example
+
+docker service run --name psql --secret psql_USER --secret psql_PASS -e POSTGRES_PASSWORD_FILE=/run/secrets/psql_pass postgres:latest
+
+#POSTGRES_PASSWORD_FILE is a pattern that docker invented
+#/run/secrets/ is the directory which the files stored
+#psql_pass is the name of the secret which contains the data
+
+#############################
+BEST PRACTICES
+#############################
+Docker compose - for dev, not for production
+Docker SWARM - for prod
+We dont need to install compose in order to use compose file with swarm.
+
+########################
+Multiple compose files
+########################
+
+docker-compose.yml - defauly compose file
+docker-compose.override.yml - "docker compose up" command will execute this config file and override docker-compose file
+#docker-compose.override.yml will be use for local development
+#docker-compose.test.yml - test / build 
+docker-compose -f docker-compose.yml -f docker-compose.test.yml up -d 
+#docker-compose.prod.yml
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml config > output.yml
+#config will combine all files to 1 big file 
+
+
+
+########################
+Service Updates
+########################
+
+#Update service image
+docker service updagte --image <imageName>:<tag> <servicename>
+
+#Add env variables with -rm and -add
+docker service update --env-add NODE_ENV=production --publish-rm 80:8080
+
+#Change the number of replicas, we can do it for multiple services in once
+docker service scale web=5 db=10
+
+#Update SWARM Stack- just edit the yml file and run the command
+docker stack deploy -c docker-compose.yml <stackName>
+
+########################
+Docker Health-Check
+########################
+#basic level of docker monitoring
+#healthcheck status shown up in docker container ls
+#check last 5 healthchecks with docker container inspect
+#docker run does nothing with healthcheck.
+#service update will wait for healthcheck before continuing
+#if the healthcheck returns 0 - its OK. ELSE (1) - ERROR
+#example:
+HEALTHCHECK --timeout=2s --interval=3s --retries=3 \
+CMD curl -f https://localhost/ || exit 1
+
+#INSIDE Compose
+
+version:...
+services:
+    web:
+        iamge:...
+        healthcheck:
+            test: ["CMD","curl","-f","https://localhost/"]
+            interval: 1m30s
+            timeout: 30s
+            retries: 3
+            start_period: 1m 
+
+
+
+
+#######################
+IMAGE Registry
+#######################
+
+#docker have private Registry
+#Work with port 5000
+#We need to enable insicure-Registry
+docker container run -d -p 5000:5000 --name registry -v $(pwd)/registry-data:/var/lib/registry registry
+
+###Save docker image to registry (for example postgres)
+
+#first we tag the image
+docker tag postgres 127.0.0.1:5000/postgres
+
+#second we push it to local registry
+docker push 127.0.0.1:5000/postgres
+
+docker pull 127.0.0.1:5000/postgres
