@@ -1,0 +1,9 @@
+git init
+
+git status
+
+git clone <url>
+
+git add <file name>
+
+git diff
