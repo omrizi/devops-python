@@ -7,3 +7,9 @@ git clone <url>
 git add <file name>
 
 git diff
+
+git log
+
+git fetch origin - get data from origin to local git repository
+
+git pull - get data from origin and merge it with local files
