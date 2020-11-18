@@ -13,3 +13,5 @@ git log
 git fetch origin - get data from origin to local git repository
 
 git pull - get data from origin and merge it with local files
+
+git push <origin> <branch> - push to master
