@@ -1,0 +1,19 @@
+ #if no version is specify version 1 is enabled
+ version:'3.1'
+
+ services: # containers, same as docker run command
+    servicename: # a name and DNS for a service
+        build: # in case we use build, in image tag we will give our unique name. and inside the dockerfile the "FROM" will specify the global image name
+            context: # the directory which contains all files and dependencies
+            dockerfile: #the name of the dockerfile
+        image: #optional if we use build 
+        command: # CMD ...
+        environment: # optional like username , password..
+        ports: 
+        volume:
+    servicename2:
+volumes: # volume create
+
+networks: # network create
+
+
